@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/aleksandra/Pulpit/SimulatedAnnealing/main.cpp
+iostream
+-
+fstream
+-
+sstream
+-
+string
+-
+vector
+-
+algorithm
+-
+cstdlib
+-
+math.h
+-
+
