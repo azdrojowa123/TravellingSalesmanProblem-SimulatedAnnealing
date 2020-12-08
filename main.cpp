@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <math.h>
+#include <cmath>
 
 #define INT_MAX 999999
 
@@ -85,20 +86,20 @@ double changeTemperature(double &actual){
     return actual*0,99;
 }
 
-void simulatedAnnealing(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost){
+void simulatedAnnealing(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost, int cooling){
     double randNumber, probability, difference, actualTemperature;
-    double expectedTime = 60000;
+    double expectedTime = 120000;
     boolean time = false;
     HighResTimer timer;
     int first,second, result;
     vector<int> route,additionalRoute;
-    vector<int> tempRoute = generateRandomCycle(graph,n);
     timer.StartTimer();
     while(time == false){
       double t2 = timer.StopTimer();
       if(t2 > expectedTime){
         break;
       } else {
+        vector<int> tempRoute = generateRandomCycle(graph,n);
         result = getSumWeight(tempRoute,graph);
         actualTemperature = calculateStartTemp(graph,n);
         while(actualTemperature >= 0.001) {
@@ -126,13 +127,76 @@ void simulatedAnnealing(vector<vector<int>>&graph, int &n, vector<int>&solution,
               }
             }
           }
-          static_cast<double>(actualTemperature = actualTemperature*0.99);
+          if(cooling == 1 ) { // chłodzenie geometryczne
+            static_cast<double>(actualTemperature = actualTemperature*0.99);
+          } else if (cooling == 2) { // chłodzenie boltzmana
+            static_cast<double>(actualTemperature = actualTemperature/ (1 + log10( 1.38 * pow(10,-23) )));
+            cout<<actualTemperature;
+          }
         }
       }
     }
     cout <<cost;
 }
 
+void swapBows(vector<int>&route, int first, int second){
+  if(first > second ){
+    int temp = second;
+    second = first;
+    first = temp;
+  }
+  for (int i = first; i <=second ;i++){
+    
+  }
+}
+
+void simulatedAnnealingSwappingBows(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost){
+  double randNumber, probability, difference, actualTemperature;
+  double expectedTime = 120000;
+  boolean time = false;
+  HighResTimer timer;
+  int first,second, result;
+  vector<int> route,additionalRoute;
+  timer.StartTimer();
+  while(time == false){
+    double t2 = timer.StopTimer();
+    if(t2 > expectedTime){
+      break;
+    } else {
+      vector<int> tempRoute = generateRandomCycle(graph,n);
+      result = getSumWeight(tempRoute,graph);
+      actualTemperature = calculateStartTemp(graph,n);
+      while(actualTemperature >= 0.001) {
+        additionalRoute = tempRoute;
+        for(int i = 0 ; i<100; i++){ // 5 to liczba iteracji w epoce
+          do{
+            first = rand()%n; // liczby z zakresu od 0 do n-1
+            second = rand()%n;
+          }while (first == second);
+
+          iter_swap(additionalRoute.begin()+first, additionalRoute.begin()+second);
+          difference = result - getSumWeight(additionalRoute,graph);
+          if(difference > 0){ //nowa ścieżka jest lepsza od poprzedniej
+            tempRoute = additionalRoute;
+            cost = getSumWeight(additionalRoute,graph);
+            result = cost;
+            solution = additionalRoute;
+            break;
+          } else {
+            randNumber = ((double)rand() / RAND_MAX) + 1;
+            probability = calculateProbability(difference,actualTemperature);
+            if (probability > randNumber){
+              tempRoute = additionalRoute;
+              break;
+            }
+          }
+        }
+          static_cast<double>(actualTemperature = actualTemperature*0.99);
+      }
+    }
+  }
+  cout <<cost;
+}
 
 
 //czytanie z pliku
@@ -226,7 +290,7 @@ int main( ) {
                 int finalCost = 0;
                 vector<int> route;
                 //timer.StartTimer()
-                simulatedAnnealing(graph, n, solution,finalCost);
+                simulatedAnnealing(graph, n, solution,finalCost,1);
                 cout<<"final wynik"<<finalCost;
                 //double t2 = timer.StopTimer(); //skończenie liczenia czasu
                 /*if(j == 0){
