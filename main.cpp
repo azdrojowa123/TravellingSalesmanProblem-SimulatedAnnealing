@@ -3,20 +3,44 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <windows.h>
 #include <algorithm>
 #include <cstdlib>
 #include <math.h>
-
 
 #define INT_MAX 999999
 
 using namespace std;
 
+//klasa licząca czas w milisekundach
+class HighResTimer
+{
+  LARGE_INTEGER start;
+  LARGE_INTEGER stop;
+  double frequency;
+public:
+  HighResTimer()
+  {
+    LARGE_INTEGER freq;
+    QueryPerformanceFrequency(&freq);
+    frequency = (double)freq.QuadPart;
+  }
+  void StartTimer()//rozpoczęcie liczenia czasu
+  {
+    QueryPerformanceCounter(&start);
+  }
+  double StopTimer()//skończenie liczenia czasu
+  {
+    QueryPerformanceCounter(&stop);
+    return ((LONGLONG)(stop.QuadPart - start.QuadPart)*1000.0/frequency); //wyliczenie wyniku w ms
+  }
+};
+
 //funkcja wyliczająca koszt przebycia drogi
 int getSumWeight(vector<int> &cycle, vector<vector<int>> &graph){
     int sum=0;
 
-    for (int i=0;i<cycle.size();i++){
+    for (int i=0;i<cycle.size()-1;i++){
 
         sum += graph[cycle[i]][cycle[i+1]];
     }
@@ -31,7 +55,6 @@ vector<int> generateRandomCycle(vector<vector<int>>&graph, int &n){
     }
     next_permutation(tab,tab+n);
     vector<int> route (tab,tab+n);
-    //cout<<route.size();
     return route;
 
 }
@@ -59,45 +82,53 @@ double calculateProbability(double &difference, double &actualTemperature){
 }
 
 double changeTemperature(double &actual){
-    return actual*0,5;
+    return actual*0,99;
 }
 
 void simulatedAnnealing(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost){
-    double actualTemperature = calculateStartTemp(graph,n);
-    double randNumber, probability, difference;
-    int first,second,actual_cost, result, iteration  = 0;
+    double randNumber, probability, difference, actualTemperature;
+    double expectedTime = 60000;
+    boolean time = false;
+    HighResTimer timer;
+    int first,second, result;
     vector<int> route,additionalRoute;
     vector<int> tempRoute = generateRandomCycle(graph,n);
-    result = getSumWeight(tempRoute,graph);
-    while(actualTemperature >= 0.1){
-        iteration = 0;
-        additionalRoute = tempRoute;
-        for(int i =0 ; i<100; i++){ // 5 to liczba iteracji w epoce
+    timer.StartTimer();
+    while(time == false){
+      double t2 = timer.StopTimer();
+      if(t2 > expectedTime){
+        break;
+      } else {
+        result = getSumWeight(tempRoute,graph);
+        actualTemperature = calculateStartTemp(graph,n);
+        while(actualTemperature >= 0.001) {
+          additionalRoute = tempRoute;
+          for(int i = 0 ; i<100; i++){ // 5 to liczba iteracji w epoce
             do{
-                first = rand()%n; // liczby z zakresu od 0 do n-1
-                second = rand()%n;
+              first = rand()%n; // liczby z zakresu od 0 do n-1
+              second = rand()%n;
             }while (first == second);
-            route = tempRoute;
+
             iter_swap(additionalRoute.begin()+first, additionalRoute.begin()+second);
             difference = result - getSumWeight(additionalRoute,graph);
             if(difference > 0){ //nowa ścieżka jest lepsza od poprzedniej
-                tempRoute = additionalRoute;
-                cost = getSumWeight(additionalRoute,graph);
-                result = cost;
-                cout<<"COST "<<cost<<endl;
-                solution = additionalRoute;
+              tempRoute = additionalRoute;
+              cost = getSumWeight(additionalRoute,graph);
+              result = cost;
+              solution = additionalRoute;
+              break;
             } else {
-                randNumber = ((double)rand() / RAND_MAX) + 1;
-                probability = calculateProbability(difference,actualTemperature);
-                if (probability > randNumber){
-                    tempRoute = additionalRoute;
-                } else {
-                    tempRoute = route;
-                }
+              randNumber = ((double)rand() / RAND_MAX) + 1;
+              probability = calculateProbability(difference,actualTemperature);
+              if (probability > randNumber){
+                tempRoute = additionalRoute;
+                break;
+              }
             }
+          }
+          static_cast<double>(actualTemperature = actualTemperature*0.99);
         }
-        cout<<"TEMP"<<actualTemperature<<endl;
-        actualTemperature = actualTemperature*0.9;
+      }
     }
     cout <<cost;
 }
@@ -164,7 +195,7 @@ int main( ) {
     vector<int> route;
     vector<vector<int>> graph;
     ofstream csvFile;
-    //HighResTimer timer;
+    HighResTimer timer;
 
     ifstream myInitFile;
     myInitFile.open("initialiaze.INI");
@@ -195,9 +226,8 @@ int main( ) {
                 int finalCost = 0;
                 vector<int> route;
                 //timer.StartTimer()
-                cout<<graph[2][1]<<graph[3][3]<<endl;
                 simulatedAnnealing(graph, n, solution,finalCost);
-                cout<<finalCost;
+                cout<<"final wynik"<<finalCost;
                 //double t2 = timer.StopTimer(); //skończenie liczenia czasu
                 /*if(j == 0){
                   csvFile.open(csvName,  std::ios::out |  std::ios::app);

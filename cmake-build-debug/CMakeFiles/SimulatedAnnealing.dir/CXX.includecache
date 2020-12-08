@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/home/aleksandra/Pulpit/SimulatedAnnealing/main.cpp
+C:/Users/azdro/OneDrive/Pulpit/PEA/SA/TravellingSalesmanProblem-SimulatedAnnealing/main.cpp
 iostream
 -
 fstream
@@ -16,6 +16,8 @@ sstream
 string
 -
 vector
+-
+windows.h
 -
 algorithm
 -
