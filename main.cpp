@@ -145,8 +145,16 @@ void swapBows(vector<int>&route, int first, int second){
     second = first;
     first = temp;
   }
-  for (int i = first; i <=second ;i++){
-    
+  while (first <second){
+    int temp = route[second];
+    route[second] = route[first];
+    cout<<route[second]<<" ";
+    route[first] = temp;
+    second--;
+    first++;
+  }cout<<endl<<endl;
+  for (int i:route){
+    cout<<i<<" ";
   }
 }
 
@@ -174,7 +182,7 @@ void simulatedAnnealingSwappingBows(vector<vector<int>>&graph, int &n, vector<in
             second = rand()%n;
           }while (first == second);
 
-          iter_swap(additionalRoute.begin()+first, additionalRoute.begin()+second);
+          swapBows(additionalRoute, first, second);
           difference = result - getSumWeight(additionalRoute,graph);
           if(difference > 0){ //nowa ścieżka jest lepsza od poprzedniej
             tempRoute = additionalRoute;
@@ -290,8 +298,10 @@ int main( ) {
                 int finalCost = 0;
                 vector<int> route;
                 //timer.StartTimer()
-                simulatedAnnealing(graph, n, solution,finalCost,1);
-                cout<<"final wynik"<<finalCost;
+                //simulatedAnnealing(graph, n, solution,finalCost,1);
+                vector<int> r {1,2,3,4,5,32,1,2};
+                swapBows(r,3,7);
+                //cout<<"final wynik"<<finalCost;
                 //double t2 = timer.StopTimer(); //skończenie liczenia czasu
                 /*if(j == 0){
                   csvFile.open(csvName,  std::ios::out |  std::ios::app);
