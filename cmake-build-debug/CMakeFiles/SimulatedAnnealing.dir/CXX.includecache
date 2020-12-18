@@ -23,8 +23,6 @@ algorithm
 -
 cstdlib
 -
-math.h
--
 cmath
 -
 

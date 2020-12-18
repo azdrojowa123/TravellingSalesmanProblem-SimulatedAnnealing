@@ -6,7 +6,6 @@
 #include <windows.h>
 #include <algorithm>
 #include <cstdlib>
-#include <math.h>
 #include <cmath>
 
 #define INT_MAX 999999
@@ -49,6 +48,7 @@ int getSumWeight(vector<int> &cycle, vector<vector<int>> &graph){
     return sum;
 }
 
+//funkcja generująca randomowy cykl
 vector<int> generateRandomCycle(vector<vector<int>>&graph, int &n){
     int tab[n];
     for(int i =0; i<n;i++){
@@ -60,6 +60,7 @@ vector<int> generateRandomCycle(vector<vector<int>>&graph, int &n){
 
 }
 
+//funkcja sprawdzająca czy w wektorze znajduje się już dany wierzchołek
 bool checkIfExsist(vector<int> route, int i){
     for(int temp : route){
         if (temp == i ){
@@ -69,6 +70,7 @@ bool checkIfExsist(vector<int> route, int i){
     return false;
 }
 
+//generuje cykl metodą NearNeighbour
 vector<int> generateRandomCycleNN(vector<vector<int>> &graph, int& n){
     vector<int> route;
     int j = 0, max, next = 0, temp = 0;
@@ -89,6 +91,7 @@ vector<int> generateRandomCycleNN(vector<vector<int>> &graph, int& n){
     return route;
 }
 
+//funkcja obliczająca temperaturę początkową
 double calculateStartTemp(vector<vector<int>>&graph, int &n){
 
     int cost = 0, first,second, previous_cost, actual_cost;
@@ -106,10 +109,13 @@ double calculateStartTemp(vector<vector<int>>&graph, int &n){
     cost = cost / n;
     return fabs(cost/log(0.92));
 }
+
+//oblicz prawdopodobieństwo
 double calculateProbability(double &difference, double &actualTemperature){
     return exp((difference/actualTemperature));
 }
 
+//funkcja zamieniająca kolejność w łuku
 void swapBows(vector<int>&route, int first, int second){
   if(first > second ){
     int temp = second;
@@ -124,78 +130,69 @@ void swapBows(vector<int>&route, int first, int second){
     first++;
   }
 }
-//algorytm stromy, chłodzenie geometryczny
+//algorytm stromy (steepest)
 void simulatedAnnealingSteepest(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost,int cooling, int startSolution, int startTemp) {
-  double randNumber, probability, difference, actualTemperature, startTemperature, freezing, expectedTime = 240000, expectedTemp;
+  double randNumber, probability, difference, actualTemperature, startTemperature, freezing = 0.999, expectedTime = 240000, expectedTemp;
   HighResTimer timer;
   vector<int> route, additionalRoute, tempR, tests, tempRoute;
-  int first, second, result, temp, final, noChange = 0, newCost, iterations = 0;
-  if(n <= 15 ){
+  int first, second, result, temp, final, newCost, iterations = 0;
+  if(n <= 15 ){ // w zależności od wielkości n wyznaczany jest czas trwania algorytmu stały
     expectedTime = 1000;
   } else if (n > 15 && n <50 ) {
     expectedTime = 120000;
   }
-  if(startSolution == 1){
+  if(startSolution == 1){ // różne możliwości wyboru rozwiązania początkowego
     tempRoute = generateRandomCycle(graph,n);
     tempR = tempRoute;
   } else {
     tempRoute = generateRandomCycleNN(graph,n);
     tempR = tempRoute;
   }
-  if(startTemp == 1){
-    startTemperature = calculateStartTemp(graph,n);
-    freezing = 0.999;
+  if(startTemp == 1){ // różne możliwości wyboru temperatury początkowej
+    actualTemperature = calculateStartTemp(graph,n);
   } else {
-    startTemperature = 1000000000;
-    freezing = 0.99;
+    actualTemperature = 1000000000;
   }
-  if(cooling ==1 ){
+  if(cooling ==1 ){ // różne wersje chłodzenia
     expectedTemp = 0.1;
   } else {
-    expectedTemp = startTemperature/2;
+    expectedTemp = actualTemperature/2;
   }
   cost =  getSumWeight(tempRoute, graph);
   final = cost;
   temp = cost;
-  timer.StartTimer();
-  actualTemperature = startTemperature;
+  timer.StartTimer(); // początek liczenia czasu
     while (actualTemperature >= expectedTemp) {
       result = getSumWeight(tempRoute, graph);
       additionalRoute = tempRoute;
       iterations ++;
-      for (int i = 0; i < 10 * n; i++) { // 5 to liczba iteracji w epoce
+      for (int i = 0; i < 10 * n; i++) { // 10*n to liczba iteracji w epoce
         tests = additionalRoute;
         do {
           first = rand() % n; // liczby z zakresu od 0 do n-1
           second = rand() % n;
         } while (first == second);
-        iter_swap(tests.begin() + first,tests.begin() + second);
-        //swapBows(tests,first,second);
+        //iter_swap(tests.begin() + first,tests.begin() + second); // 2-k zamiana
+        swapBows(tests,first,second); // zamiana łuków
         newCost = getSumWeight(tests, graph);
         difference = result - newCost;
-        if (difference > 0) { // nowa ścieżka jest lepsza od poprzedniej
+        if (difference > 0) { // jeśli nowa ścieżka jest lepsza od poprzedniej
           if(newCost < temp){
             temp = newCost;
             tempR = tests;
           }
         }
       }
-      if (temp < cost){
-        if(temp<final){
+      if (temp < final){
           final = temp;
           solution = tempR;
-        }
-        tempRoute = tempR;
-        cost = temp;
-        noChange = 0;
-      } else {
-        noChange ++;
+          tempRoute = tempR;
+      } else { // nie znaleźliśmy lepszego rozwiązania więc
         randNumber = ((double)rand() / RAND_MAX);
-        difference = result - temp;
-        probability = calculateProbability(difference, actualTemperature);
+        difference = result - temp; // wuliczenie różnicy
+        probability = calculateProbability(difference, actualTemperature); // obliczenie prawdopodobieństwa
         if (probability > randNumber) {
           tempRoute = tests;
-          cost = newCost;
         }
       }
       if(cooling == 1 ) { // chłodzenie geometryczne
@@ -210,6 +207,8 @@ void simulatedAnnealingSteepest(vector<vector<int>>&graph, int &n, vector<int>&s
     }
     cost = final;
 }
+
+//algorytm greedy
 void simulatedAnnealingGreedy(vector<vector<int>>&graph, int &n, vector<int>&solution,int &cost, int cooling, int startSolution, int startTemp){
   double randNumber, probability, difference, actualTemperature, startTemperature, expectedTime  = 360000, freezing, expectedTemp;
   vector<int> tempRoute;
@@ -253,10 +252,10 @@ void simulatedAnnealingGreedy(vector<vector<int>>&graph, int &n, vector<int>&sol
           first = rand()%n; // liczby z zakresu od 0 do n-1
           second = rand()%n;
         }while (first == second);
-        iter_swap(tests.begin()+first, tests.begin()+second);
+        iter_swap(tests.begin()+first, tests.begin()+second); // 2-k zamiana
         newCost = getSumWeight(tests,graph);
         difference = result - newCost;
-        if(difference > 0){ //nowa ścieżka jest lepsza od poprzedniej
+        if(difference > 0){ // jeśli nowa ścieżka jest lepsza od poprzedniej
           noChange = 0;
           if(newCost<final){
             final = newCost;
@@ -379,8 +378,7 @@ int main( ) {
                 vector<int> route;
                 timer.StartTimer();
                 //simulatedAnnealingGreedy(graph,n,solution,finalCost,1,2,1);
-                simulatedAnnealingSteepest(graph,n,solution,finalCost,1,2,2);
-                //simulatedAnnealingSwappingBows(graph,n,solution,finalCost,2);
+                simulatedAnnealingSteepest(graph,n,solution,finalCost,2,2,1);
                 int t2 = timer.StopTimer(); //skończenie liczenia czasu
                 if(j == 0){
                   csvFile.open(csvName,  std::ios::out |  std::ios::app);
